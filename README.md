@@ -11,6 +11,15 @@
 - 安装包名：`com.shihab.diplay.ora81`。
 - 基础版本：上游 `0.2.10`，选择性移植 `0.2.11 / 0.2.12` 的音乐信息及显示改进。
 
+## 安装包下载
+
+[下载 v10 测试版 APK、安装说明及 SHA-256 校验文件](https://github.com/hiscatwang/DiPlay/releases/tag/v0.2.10-ora81-v10-wheel)。
+
+在发布页的 **Assets** 中选择 `Diplay-Android8.1-x86-v10-wheel.apk`，安装到车机。
+这是此前交付的同一安装包，适用于 Android 8.1 / Intel x86、x86_64；版本号为 `39`。
+与本分支既有测试版签名一致时可覆盖安装；v10 方向盘恢复效果仍待实车确认。
+随包运行身份沿用上游公开 v0.2.10 APK 的实验性资源，未获得 Apple 官方认证，详见第三方说明。
+
 ## 适配范围与验证状态
 
 | 项目 | 范围 / 结果 |
@@ -54,7 +63,8 @@
 完整适配记录、所需 Android SDK / NDK 和构建命令见 [Android 8.1 构建说明](docs/ORA_ANDROID81.md)。
 
 仓库和 CI 提供**不包含本地认证身份与签名密钥的源码构建**。普通 `assembleDebug` 构建结果不等于此前单独交付的完整车机测试 APK。
-本次 GitHub 上传包含源码、测试与文档，不发布包含本地认证材料的 APK。
+Releases 单独提供含上游公开实验性运行资源的 v10 测试 APK；对应源码可从同一发布标签下载。
+源码和 CI 不包含认证私钥，Android 签名私钥始终不公开。
 上游实验性认证机制及限制见 [第三方说明](docs/THIRD_PARTY_NOTICES.md) 和构建文档。
 
 ## 非商业维护与许可
