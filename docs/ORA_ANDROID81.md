@@ -249,7 +249,8 @@ The user reports that after a car reboot, steering-wheel track changes only work
 after changing tracks once on the iPhone, whether or not music initially plays.
 The code had no media session before the first media audio stream and confused
 initial song-only metadata with an explicit paused status. These are reproducible
-initialization gaps; their contribution on Harman hardware requires a car retest.
+initialization gaps. On 2026-10-05 the owner confirmed the delivered v10 build
+works on the ORA Good Cat Harman head unit, including steering-wheel track changes.
 
 - Create and activate the Android media session when AirPlay connects. Publish
   playback actions and initial state before activation, without requesting focus
@@ -279,6 +280,8 @@ See the installation note supplied with the APK for the final validation record.
 
 The user's real-car reports confirm wireless operation, separate navigation/media
 volume with both focus switches enabled, and successful v8 use after the handoff fix.
-V9 display additions, Siri and USB behavior still require their own real-car checks.
+On 2026-10-05 the owner also confirmed the delivered display additions and v10
+steering-wheel fix work in the car. This confirmation does not establish compatibility
+with other vehicles or firmware, or a comprehensive test of every protocol feature.
 The source archive includes the original GPL-3.0 license,
 DiAuto AGPL-3.0 license and third-party notices.
