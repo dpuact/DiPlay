@@ -424,6 +424,10 @@ class DiPlayActivity : ComponentActivity() {
                 AirPlayPersistence.loadNavigationAudioFocusEnabled(this)) { enabled ->
                 AirPlayPersistence.saveNavigationAudioFocusEnabled(this, enabled)
             }
+            toggle(card, getString(R.string.siri_uses_navigation), getString(R.string.siri_uses_navigation_hint),
+                AirPlayPersistence.loadSiriUsesNavigation(this)) { enabled ->
+                AirPlayPersistence.saveSiriUsesNavigation(this, enabled)
+            }
             mediaChannelControl(card)
             navigationChannelControl(card)
         }

@@ -10,7 +10,8 @@ internal object AudioRoutingDiagnostics {
         appendLine("Saved audio: mediaStream=${AirPlayPersistence.loadMediaAudioChannel(context)} " +
             "navigationStream=${AirPlayPersistence.loadNavigationAudioChannel(context)} " +
             "mediaFocus=${AirPlayPersistence.loadAudioFocusEnabled(context)} " +
-            "navigationFocus=${AirPlayPersistence.loadNavigationAudioFocusEnabled(context)}")
+            "navigationFocus=${AirPlayPersistence.loadNavigationAudioFocusEnabled(context)} " +
+            "siriUsesNavigation=${AirPlayPersistence.loadSiriUsesNavigation(context)}")
         val manager = context.getSystemService(AudioManager::class.java)
         if (manager == null) { appendLine("AudioManager unavailable"); return@buildString }
         appendLine("AudioManager implementation=${manager.javaClass.name}")

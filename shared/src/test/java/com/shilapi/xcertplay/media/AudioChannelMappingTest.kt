@@ -5,6 +5,23 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AudioChannelMappingTest {
+    @Test fun siriCompatibilityChangesOnlySpeechRecognitionInBothMappingModes() {
+        for (mode in AudioChannelMappingMode.values()) {
+            for (type in listOf(100, 101, 102)) {
+                assertEquals(
+                    AudioChannelSelection(AudioChannel.NAVIGATION, AudioContentType.SPEECH, 15),
+                    AudioChannelMapper.map("speechRecognition", type, mode, 15, siriUsesNavigation = true),
+                )
+                for (audioType in listOf("media", "telephony", "default", "alert", "compatibility", "unknown")) {
+                    assertEquals(
+                        AudioChannelMapper.map(audioType, type, mode, 15),
+                        AudioChannelMapper.map(audioType, type, mode, 15, siriUsesNavigation = true),
+                    )
+                }
+            }
+        }
+    }
+
     @Test
     fun mobileCompatibleMappingMatchesTheOriginalRouting() {
         assertMapped(

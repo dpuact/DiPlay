@@ -40,7 +40,7 @@ Required Notice: Copyright AndyShaman (https://github.com/AndyShaman/BYDMate)
 ## 本次公开范围
 
 本次公开源码、测试和适配文档，保留原作者署名、GPL / AGPL 文本和素材已有许可。
-Releases 另行提供 v11 APK，其中实验性认证身份与上游公开 v0.2.10 安装包中的资源一致；
+Releases 另行提供 v11 APK 和 v12 测试 APK，其中实验性认证身份与上游公开 v0.2.10 安装包中的资源一致；
 这些资源不作为项目代码重新授权，也不代表 Apple 官方认证。来源及分发限制见 [第三方说明](THIRD_PARTY_NOTICES.md)。
 源码不包含认证私钥；Android 签名私钥、个人设备日志和热点配置不公开。
 “欧拉好猫哈曼车机已适配”的具体平台和实车验证范围见 [项目首页](../README.md)。

@@ -154,6 +154,7 @@ class AndroidMediaSink(
     /** True while any music ("media") audio stream is running; called from media threads. */
     private val onMediaAudioChanged: (Boolean) -> Unit = {},
     navigationAudioFocusEnabled: Boolean = false,
+    private val siriUsesNavigation: Boolean = false,
 ) : MediaSink {
     private val appContext = context?.applicationContext
     private val audioManager = appContext?.getSystemService(AudioManager::class.java)
@@ -411,6 +412,7 @@ class AndroidMediaSink(
             audioFocusEnabled,
             mediaChannel,
             navigationChannel,
+            siriUsesNavigation,
             audioFocusCoordinator,
             navigationAudioFocus,
             navigationStreamType,
@@ -787,6 +789,7 @@ private class AudioRenderer(
     private val audioFocusEnabled: Boolean,
     private val mediaChannel: Int,
     private val navigationChannel: Int,
+    private val siriUsesNavigation: Boolean,
     private val audioFocusCoordinator: AudioFocusCoordinator,
     private val navigationAudioFocus: NavigationAudioFocus,
     private val navigationStreamType: Int,
@@ -1053,6 +1056,7 @@ private class AudioRenderer(
             audioType = format.audioType,
             payloadType = format.payloadType,
             mode = mode,
+            siriUsesNavigation = siriUsesNavigation,
         )
     }
 
@@ -1096,6 +1100,7 @@ private class AudioRenderer(
             payloadType = format.payloadType,
             mode = mode,
             navigationStreamType = navigationStreamType,
+            siriUsesNavigation = siriUsesNavigation,
         ).streamType
     }
 

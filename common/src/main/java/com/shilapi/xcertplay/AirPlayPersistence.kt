@@ -2,6 +2,7 @@ package com.shilapi.xcertplay
 
 import android.content.Context
 import android.os.Build
+import com.shilapi.xcertplay.host.R
 import com.shilapi.xcertplay.airplay.AirPlayDisplaySettings
 import com.shilapi.xcertplay.airplay.AirPlayPhysicalSizeBasis
 import com.shilapi.xcertplay.airplay.CarPlayDisplayScale
@@ -193,6 +194,16 @@ object AirPlayPersistence {
     fun saveNavigationAudioFocusEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putBoolean("navigation_audio_focus_enabled", enabled).apply()
+    }
+
+    fun loadSiriUsesNavigation(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(
+            "siri_uses_navigation", context.resources.getBoolean(R.bool.config_siri_uses_navigation),
+        )
+
+    fun saveSiriUsesNavigation(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean("siri_uses_navigation", enabled).apply()
     }
 
     fun loadMediaAudioChannel(context: Context): Int =

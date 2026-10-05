@@ -3343,6 +3343,7 @@ class CarPlayHostActivity : ComponentActivity() {
             mediaChannel = AirPlayPersistence.loadMediaAudioChannel(this),
             navigationChannel = AirPlayPersistence.loadNavigationAudioChannel(this),
             navigationAudioFocusEnabled = AirPlayPersistence.loadNavigationAudioFocusEnabled(this),
+            siriUsesNavigation = AirPlayPersistence.loadSiriUsesNavigation(this),
             context = this,
             navigationStreamType = navigationStreamType,
             onScreenStreamActiveChanged = { type, active ->

@@ -312,3 +312,29 @@ steering-wheel fix work in the car. This confirmation does not establish compati
 with other vehicles or firmware, or a comprehensive test of every protocol feature.
 The source archive includes the original GPL-3.0 license,
 DiAuto AGPL-3.0 license and third-party notices.
+
+### Twelfth build: Siri replies through the navigation output
+
+Version `0.2.10-ora-android81-test12-siri` (code 41) adds a compatibility option
+for head units without a usable assistant output. The owner reports that Siri
+recognizes speech but its replies are inaudible. This is not yet confirmed by a
+new car-side audio log, so a routing correction remains a testable hypothesis.
+
+The mobile ORA build enables "Siri follows navigation audio" by default, including
+upgrades with no saved value. Users can turn it off to restore assistant routing.
+The setting is under Audio routing and takes effect on reconnect. Other build
+targets retain their previous default. Explicitly saved preferences take priority.
+
+Only the playback classification of `speechrecognition` changes. Siri inherits
+the selected navigation output and shares its temporary focus request, acquired
+when audible PCM arrives and released after the buffered reply and a short tail.
+Music keeps its existing media-focus owner. Navigation and Siri can overlap without
+one closing the other's focus request. Microphone capture, stream identifiers,
+telephone routing, existing audio settings and hotspot readiness are unchanged.
+The saved compatibility setting and actual Siri playback mapping appear in the
+exported diagnostics.
+
+Keep both existing audio-focus switches enabled and reconnect after upgrading.
+Verify a spoken Siri answer with music playing and stopped, return to music after
+each reply, navigation-volume control, and the same behavior after a car reboot.
+This build needs real-car validation; the v11 confirmation does not cover v12.
