@@ -487,4 +487,7 @@
     <string name="settings_gesture_fingers_label">Abrir ajustes · dedos del deslizamiento</string>
     <string name="settings_gesture_fingers_option">%1$d dedos</string>
     <string name="settings_gesture_fingers_hint">Elige un gesto libre. Si tres dedos abren un panel del sistema, usa dos o cuatro.</string>
+    <string name="waiting_for_car_hotspot">Esperando a que se inicie el punto de acceso del coche… La conexión continuará automáticamente.</string>
+    <string name="car_hotspot_startup_hint">El punto de acceso aún no está listo. La conexión esperará a que el coche termine de iniciarlo.</string>
+    <string name="car_hotspot_wait_timeout">El punto de acceso del coche no está listo. Se reintentará automáticamente; comprueba que esté activado.</string>
 </resources>

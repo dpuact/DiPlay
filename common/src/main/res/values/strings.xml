@@ -486,4 +486,7 @@
     <string name="settings_gesture_fingers_label">Open settings · swipe-down fingers</string>
     <string name="settings_gesture_fingers_option">%1$d fingers</string>
     <string name="settings_gesture_fingers_hint">Choose a gesture your head unit does not use. If three fingers open a system panel, choose two or four.</string>
+    <string name="waiting_for_car_hotspot">Waiting for the car hotspot to finish starting… Connection will continue automatically.</string>
+    <string name="car_hotspot_startup_hint">The hotspot is not ready yet. Connecting will wait for the car to finish starting it.</string>
+    <string name="car_hotspot_wait_timeout">The car hotspot is not ready. Retrying automatically; check that the hotspot is enabled.</string>
 </resources>

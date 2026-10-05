@@ -486,4 +486,7 @@
     <string name="settings_gesture_fingers_label">打开设置 · 下滑手指数</string>
     <string name="settings_gesture_fingers_option">%1$d 指</string>
     <string name="settings_gesture_fingers_hint">选择车机未占用的手势。如果三指下滑会打开系统面板，请改用两指或四指。</string>
+    <string name="waiting_for_car_hotspot">正在等待车机热点启动，就绪后将自动连接…</string>
+    <string name="car_hotspot_startup_hint">热点尚未就绪；连接时会自动等待车机完成启动。</string>
+    <string name="car_hotspot_wait_timeout">车机热点尚未就绪，将自动重试；请确认热点已开启。</string>
 </resources>

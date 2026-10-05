@@ -1820,11 +1820,6 @@ class CarPlayController(
         } else {
             config.wirelessHotspotMode
         }
-        if (hotspotMode == WirelessHotspotMode.MANUAL &&
-            com.shilapi.xcertplay.network.CarHotspotStatus.isEnabled(appContext) == false
-        ) {
-            throw IOException("The car hotspot is off. Turn it on in the car settings and connect again.")
-        }
         val manager: WirelessHotspotManager = when (hotspotMode) {
             WirelessHotspotMode.WIFI_P2P -> WifiP2pGroupManager(appContext, ::debugLog)
             WirelessHotspotMode.LOCAL_ONLY_HOTSPOT -> LocalOnlyHotspotManager(appContext, ::debugLog)
@@ -1840,10 +1835,10 @@ class CarPlayController(
             )
         }
         hotspot = manager
-        val timeoutMillis = if (hotspotMode == WirelessHotspotMode.WIFI_P2P) {
-            WIFI_P2P_START_TIMEOUT_MILLIS
-        } else {
-            HOTSPOT_START_TIMEOUT_MILLIS
+        val timeoutMillis = when (hotspotMode) {
+            WirelessHotspotMode.WIFI_P2P -> WIFI_P2P_START_TIMEOUT_MILLIS
+            WirelessHotspotMode.MANUAL -> MANUAL_HOTSPOT_START_TIMEOUT_MILLIS
+            WirelessHotspotMode.LOCAL_ONLY_HOTSPOT -> HOTSPOT_START_TIMEOUT_MILLIS
         }
         return try {
             manager.start(timeoutMillis)
@@ -2320,6 +2315,7 @@ class CarPlayController(
         const val CONNECTION_DIAGNOSTIC_PREFIX = "CONNECTION_DIAGNOSTIC"
         private val diagnosticAttempts = AtomicInteger()
         private const val IAP2_IPHONE_UUID = "00000000-deca-fade-deca-deafdecacafe"
+        private const val MANUAL_HOTSPOT_START_TIMEOUT_MILLIS = 120_000L
         private const val HOTSPOT_START_TIMEOUT_MILLIS = 60_000L
         private const val WIFI_P2P_START_TIMEOUT_MILLIS = 20_000L
         private const val PAIR_TIMEOUT_MILLIS = 5 * 60_000L

@@ -273,6 +273,33 @@ on the wheel, both with music playing and with music initially paused.
 
 ## Validation scope
 
+### Eleventh build: allow the system hotspot to finish booting
+
+Version `0.2.10-ora-android81-test11-hotspot` (code 40) addresses automatic
+startup in a restored compact/PiP window racing the head unit's hotspot startup.
+The launcher no longer blocks connection with an immediate hotspot-off dialog,
+and the controller no longer rejects a temporarily disabled system AP.
+
+The manual hotspot manager waits on its connection worker for up to 120 seconds,
+checking every 500 ms. It waits for both an enabled AP (when the firmware exposes
+that state) and a usable interface address. A retained address on a disabled AP
+does not count as ready. Firmware that hides AP state keeps the existing interface
+fallback. Live AP configuration is read after readiness, rather than cached during
+early boot. An already ready hotspot connects without an added fixed delay.
+
+The screen explains that connection will continue automatically. A timeout uses
+the existing bounded-backoff reconnect path; closing the session interrupts the
+wait. This does not enable, disable, or rewrite the system hotspot or change the
+working audio-focus and routing behavior. Startup and readiness transitions are
+logged without per-poll logging or hotspot passwords.
+
+Regression coverage includes a 90-second delayed hotspot, delayed interface
+address, stale address while AP is off, hidden state APIs, timeout, cancellation,
+interrupts, compact automatic launch, manual connect and invalid saved settings.
+On 2026-10-05 the owner confirmed the delivered v11 hotspot-startup fix passed
+real-car validation on the ORA Good Cat Harman head unit. This is owner-reported
+hardware validation, in addition to the automated and emulator checks below.
+
 Gradle build, Android lint (no errors), and the shared/common unit tests pass.
 An Android 8.1.0 x86_64 emulator verifies installation, startup, Simplified Chinese
 settings, and persistence of the right-hand-drive switch across process restart.

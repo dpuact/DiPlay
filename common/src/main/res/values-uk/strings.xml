@@ -487,4 +487,7 @@
     <string name="settings_gesture_fingers_label">Відкрити налаштування · кількість пальців</string>
     <string name="settings_gesture_fingers_option">%1$d пальців</string>
     <string name="settings_gesture_fingers_hint">Виберіть вільний жест. Якщо три пальці відкривають системну панель, використовуйте два або чотири.</string>
+    <string name="waiting_for_car_hotspot">Очікування запуску точки доступу автомобіля… Підключення продовжиться автоматично.</string>
+    <string name="car_hotspot_startup_hint">Точка доступу ще не готова. Підключення зачекає, поки автомобіль завершить її запуск.</string>
+    <string name="car_hotspot_wait_timeout">Точка доступу автомобіля не готова. Повторна спроба відбудеться автоматично; переконайтеся, що точку доступу ввімкнено.</string>
 </resources>

@@ -2841,10 +2841,16 @@ class CarPlayHostActivity : ComponentActivity() {
         includeFontPadding = false
     }
 
+    private fun hotspotStartupDescription(): String = getString(
+        if (wirelessHotspotMode == WirelessHotspotMode.MANUAL)
+            R.string.waiting_for_car_hotspot
+        else R.string.starting_wireless_hotspot,
+    )
+
     private fun updateHotspotStatus(status: CarPlayStatus) {
         if (!wirelessEnabled) return
         hotspotStatus = when (status) {
-            CarPlayStatus.StartingHotspot -> HotspotStatus(state = getString(R.string.starting))
+            CarPlayStatus.StartingHotspot -> HotspotStatus(state = hotspotStartupDescription())
             is CarPlayStatus.HotspotReady -> HotspotStatus(
                 state = getString(R.string.ready),
                 ssid = status.ssid,
@@ -4143,6 +4149,8 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     private fun friendlyStage(message: String): String = when {
+        message.contains("Timed out", true) && message.contains("waiting for the manual hotspot", true) ->
+            getString(R.string.car_hotspot_wait_timeout)
         message == getString(R.string.vpn_consent_was_denied) -> message
         message == getString(R.string.waiting_for_mfi_coprocessor) ||
             message == getString(R.string.requesting_mfi_usb_permission) -> message
@@ -4237,7 +4245,7 @@ class CarPlayHostActivity : ComponentActivity() {
         CarPlayStatus.WaitingForMfi -> getString(R.string.waiting_for_mfi_coprocessor)
         CarPlayStatus.RequestingMfiPermission -> getString(R.string.requesting_mfi_usb_permission)
         CarPlayStatus.MfiReady -> getString(R.string.mfi_authentication_ready)
-        CarPlayStatus.StartingHotspot -> getString(R.string.starting_wireless_hotspot)
+        CarPlayStatus.StartingHotspot -> hotspotStartupDescription()
         is CarPlayStatus.HotspotReady ->
             getString(R.string.status_hotspot_ready, backend, ssid, band, if (channel == 0) getString(R.string.auto_value) else channel.toString())
         CarPlayStatus.WaitingForPairedIphone -> getString(R.string.waiting_for_paired_iphone)

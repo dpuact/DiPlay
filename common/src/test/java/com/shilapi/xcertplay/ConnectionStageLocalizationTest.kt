@@ -42,4 +42,16 @@ class ConnectionStageLocalizationTest {
             .apply { isAccessible = true }.invoke(activity, message)
         assertEquals(message, stage.text.toString())
     }
+
+    @Test fun manualHotspotStartupShowsAutomaticWaitingInChinese() {
+        CarPlayHostActivity::class.java.getDeclaredField("wirelessHotspotMode")
+            .apply { isAccessible = true }.set(activity, com.shilapi.xcertplay.orchestration.WirelessHotspotMode.MANUAL)
+        report(CarPlayStatus.StartingHotspot)
+        assertEquals(activity.getString(R.string.waiting_for_car_hotspot), stage.text.toString())
+    }
+
+    @Test fun slowHotspotTimeoutExplainsAutomaticRetryWithoutAnOffDialog() {
+        report(CarPlayStatus.Failed("Could not establish MANUAL hotspot: Timed out after 120000ms waiting for the manual hotspot: system AP not enabled yet"))
+        assertEquals(activity.getString(R.string.car_hotspot_wait_timeout), stage.text.toString())
+    }
 }
