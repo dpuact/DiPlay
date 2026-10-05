@@ -316,9 +316,10 @@ DiAuto AGPL-3.0 license and third-party notices.
 ### Twelfth build: Siri replies through the navigation output
 
 Version `0.2.10-ora-android81-test12-siri` (code 41) adds a compatibility option
-for head units without a usable assistant output. The owner reports that Siri
-recognizes speech but its replies are inaudible. This is not yet confirmed by a
-new car-side audio log, so a routing correction remains a testable hypothesis.
+for head units without a usable assistant output. The owner originally reported
+that Siri recognized speech but its replies were inaudible. On 2026-10-05, after
+testing this build, the owner confirmed the Siri audio compatibility change works
+on the ORA Good Cat Harman head unit. This is owner-reported vehicle validation.
 
 The mobile ORA build enables "Siri follows navigation audio" by default, including
 upgrades with no saved value. Users can turn it off to restore assistant routing.
@@ -337,4 +338,8 @@ exported diagnostics.
 Keep both existing audio-focus switches enabled and reconnect after upgrading.
 Verify a spoken Siri answer with music playing and stopped, return to music after
 each reply, navigation-volume control, and the same behavior after a car reboot.
-This build needs real-car validation; the v11 confirmation does not cover v12.
+V12 is promoted to the latest regular release with the same APK, version code
+and source tag as the initial test release. The confirmation covers this reported
+Siri issue on the owner's vehicle; it does not establish a comprehensive test of
+every Siri command, phone call, restart scenario or other firmware. The automated
+and emulator records remain separate evidence. Existing v12 users need not reinstall.
