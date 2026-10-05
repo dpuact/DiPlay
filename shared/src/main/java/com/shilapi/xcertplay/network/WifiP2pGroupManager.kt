@@ -88,6 +88,8 @@ class WifiP2pGroupManager(
         } catch (error: InterruptedException) {
             Thread.currentThread().interrupt()
             "p2pGroup=interrupted association=unknown"
+        } catch (_: SecurityException) {
+            "p2pGroup=permission_denied association=unknown"
         } catch (error: RuntimeException) {
             "p2pGroup=unavailable failureClass=${error.javaClass.simpleName} association=unknown"
         }
@@ -200,7 +202,11 @@ class WifiP2pGroupManager(
                     val usingRemembered = preferred?.request == selection
                     if (usingRemembered) synchronized(stateLock) { rememberedAttempt = preferred }
                     try {
-                        p2pManager.createGroup(p2pChannel, config, createActionListener(attempt, request))
+                        try {
+                            p2pManager.createGroup(p2pChannel, config, createActionListener(attempt, request))
+                        } catch (error: SecurityException) {
+                            throw IOException("Allow Wi-Fi/location permissions to start Wi-Fi Direct", error)
+                        }
                         awaitGroupCreated(attempt, request, deadlineNanos, timeoutMillis)
                     } catch (failure: P2pCreateRejected) {
                         if (usingRemembered && failure.reason == WifiP2pManager.ERROR && preferred != null) {
@@ -439,7 +445,8 @@ class WifiP2pGroupManager(
     ): WifiP2pGroup? {
         val result = AtomicReference<WifiP2pGroup?>()
         val latch = CountDownLatch(1)
-        p2pManager.requestGroupInfo(channel) {
+        try {
+            p2pManager.requestGroupInfo(channel) {
             // Keep the first identity returned after our successful creation. A later global
             // broadcast may describe a replacement group belonging to another app.
             if (attempt.createSucceeded && observedCreatedName == null && it?.isGroupOwner == true &&
@@ -448,6 +455,9 @@ class WifiP2pGroupManager(
             }
             result.set(it)
             latch.countDown()
+            }
+        } catch (error: SecurityException) {
+            throw IOException("Allow Wi-Fi/location permissions to read the Wi-Fi Direct group", error)
         }
         if (!await(latch, timeoutNanos)) {
             if (requireResponse) throw IOException("Wi-Fi Direct did not respond")
@@ -536,7 +546,12 @@ class WifiP2pGroupManager(
         val fiveGhzSupported = runCatching { wifi?.is5GHzBandSupported }.getOrNull()
         val wifiEnabled = runCatching { wifi?.isWifiEnabled }.getOrNull()
         val locationEnabled = runCatching {
-            appContext.getSystemService(LocationManager::class.java)?.isLocationEnabled
+            val location = appContext.getSystemService(LocationManager::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) location?.isLocationEnabled
+            else location?.let {
+                it.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                    it.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            }
         }.getOrNull()
         val required = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.NEARBY_WIFI_DEVICES
             else Manifest.permission.ACCESS_FINE_LOCATION
@@ -667,17 +682,26 @@ class WifiP2pGroupManager(
                     latch.countDown()
                     return@requestGroupInfo
                 }
-                p2pManager.removeGroup(channel, object : WifiP2pManager.ActionListener {
-                    override fun onSuccess() {
-                        latch.countDown()
-                    }
+                // This callback runs later, outside the requestGroupInfo try/catch.
+                try {
+                    p2pManager.removeGroup(channel, object : WifiP2pManager.ActionListener {
+                        override fun onSuccess() {
+                            latch.countDown()
+                        }
 
-                    override fun onFailure(reason: Int) {
-                        diagnostic("Wi-Fi P2P remove rejected code=$reason reason=${failureReason(reason)}")
-                        latch.countDown()
-                    }
-                })
+                        override fun onFailure(reason: Int) {
+                            diagnostic("Wi-Fi P2P remove rejected code=$reason reason=${failureReason(reason)}")
+                            latch.countDown()
+                        }
+                    })
+                } catch (failure: RuntimeException) {
+                    Log.w(TAG, "Wi-Fi P2P asynchronous cleanup failed", failure)
+                    latch.countDown()
+                }
             }
+        } catch (failure: SecurityException) {
+            Log.w(TAG, "Wi-Fi P2P cleanup permission was revoked", failure)
+            latch.countDown()
         } catch (failure: RuntimeException) {
             Log.w(TAG, "Wi-Fi P2P removeGroup could not be issued", failure)
             latch.countDown()

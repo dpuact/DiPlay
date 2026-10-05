@@ -15,10 +15,13 @@ android {
 
     defaultConfig {
         applicationId = "com.shihab.diplay"
-        minSdk = 28
+        minSdk = 27
         targetSdk = 37
-        versionCode = 29
+        versionCode = 39
         versionName = "0.2.10"
+        ndk {
+            abiFilters += listOf("x86", "x86_64")
+        }
 
     }
 
@@ -39,8 +42,8 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".hudtest"
-            versionNameSuffix = "-hud-test"
+            applicationIdSuffix = ".ora81"
+            versionNameSuffix = "-ora-android81-test10-wheel"
         }
         release {
             optimization {

@@ -103,7 +103,7 @@ class CarPlayMediaEngine(
                         TAG,
                         "screen stream ended type=$type reason=${cause?.message ?: "peer EOF"}",
                     )
-                    if (streams.remove(streamKey, screen)) {
+                    if (streams.remove(streamKey, screen) && streams.keys.none { it.type == type }) {
                         sink.onScreenStreamActive(type, false)
                     }
                     session.close()
@@ -285,7 +285,7 @@ class CarPlayMediaEngine(
     }
 
     override fun onFeedback(session: AirPlaySession): Map<String, Any?>? {
-        val active = audioMeta.values.toList()
+        val active = audioMeta.filterKeys { it.session === session }.values.toList()
         if (active.isEmpty()) return null
         val streams = active.map { meta ->
             val entry = linkedMapOf<String, Any?>(
@@ -317,29 +317,37 @@ class CarPlayMediaEngine(
         if (type == STREAM_TYPE_DATA) clearPendingIapTunnel(session)
         // TEARDOWN carries only the stream type; release every audioType variant of it.
         val tornDown = streams.keys.filter { it.session === session && it.type == type }
-        tornDown.forEach { key ->
-            val streamId = AudioStreamId(key.type, key.audioType)
-            if (pendingMicrophone.remove(key) != null) sink.onMicrophoneStopped(streamId)
-            audioMeta.remove(key)
-            audioCaptures.remove(key)?.close()
-            sink.onAudioStopped(streamId)
-            streams.remove(key)?.close()
+        closeStreams(tornDown)
+        // A repeated screen TEARDOWN still acknowledges inactivity, unless another
+        // session currently owns a screen of the same type.
+        if (tornDown.isEmpty() && isScreenStreamType(type) && streams.keys.none { it.type == type }) {
+            sink.onScreenStreamActive(type, false)
         }
-        if (isScreenStreamType(type)) sink.onScreenStreamActive(type, false)
     }
 
     override fun onSessionClosed(session: AirPlaySession) {
         clearPendingIapTunnel(session)
         videoSettingsChannels.remove(session)?.close()
-        val sessionStreams = streams.keys.filter { it.session === session }
-        sessionStreams
-            .filter { isScreenStreamType(it.type) }
-            .forEach { sink.onScreenStreamActive(it.type, false) }
-        sessionStreams.forEach { streams.remove(it)?.close() }
-        audioMeta.clear()
-        pendingMicrophone.clear()
-        audioCaptures.values.forEach(AudioPacketCapture::close)
-        audioCaptures.clear()
+        val sessionKeys = (streams.keys + audioMeta.keys + pendingMicrophone.keys + audioCaptures.keys)
+            .filter { it.session === session }.toSet()
+        closeStreams(sessionKeys)
+    }
+
+    private fun closeStreams(keys: Collection<StreamKey>) {
+        keys.forEach { key ->
+            streams.remove(key)?.close()
+            val streamId = AudioStreamId(key.type, key.audioType)
+            val hadMicrophone = pendingMicrophone.remove(key) != null
+            val hadAudio = audioMeta.remove(key) != null
+            audioCaptures.remove(key)?.close()
+            // The sink routes by type, so don't stop a replacement session's output.
+            if (isScreenStreamType(key.type)) {
+                if (streams.keys.none { it.type == key.type }) sink.onScreenStreamActive(key.type, false)
+            } else if (audioMeta.keys.none { it.type == key.type && it.audioType == key.audioType }) {
+                if (hadMicrophone) sink.onMicrophoneStopped(streamId)
+                if (hadAudio) sink.onAudioStopped(streamId)
+            }
+        }
     }
 
     private fun replacePendingIapTunnel(session: AirPlaySession, next: PendingIapTunnel) {

@@ -33,6 +33,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.shilapi.xcertplay.airplay.CarPlayClusterDisplay
+import com.shilapi.xcertplay.airplay.CarPlayDisplayScale
 import com.shilapi.xcertplay.hud.BydAdbAccess
 import com.shilapi.xcertplay.hud.BydNavigationOutputs
 import com.shilapi.xcertplay.hud.BydOutputSettings
@@ -159,20 +160,50 @@ class DiPlayActivity : ComponentActivity() {
     }
     override fun onPause() { handler.removeCallbacks(tick); super.onPause() }
 
+    override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: Configuration) {
+        super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig)
+        render()
+    }
+
+    private val isCompactLayout: Boolean
+        get() = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInMultiWindowMode) ||
+            resources.configuration.screenWidthDp < 550 ||
+            resources.configuration.screenHeightDp < 450
+
     private fun render() {
         status = null; connectButton = null; disconnectButton = null; lastRunning = null
+        val compact = isCompactLayout
         val scroll = ScrollView(this).apply { setBackgroundColor(BG); isFillViewport = true; clipToPadding = false }
-        val content = column().apply { setPadding(dp(32), dp(24), dp(32), dp(32)) }
+        val content = column().apply {
+            if (compact) setPadding(dp(12), dp(10), dp(12), dp(12))
+            else setPadding(dp(32), dp(24), dp(32), dp(32))
+        }
         scroll.addView(content)
         val header = row().apply { gravity = Gravity.CENTER_VERTICAL }
-        header.addView(ImageView(this).apply { setImageResource(R.drawable.ic_carplay); contentDescription = getString(R.string.carplay) }, LinearLayout.LayoutParams(dp(36), dp(36)))
-        header.addView(label(getString(R.string.diplay), 26, TEXT, true).apply { setPadding(dp(12), 0, 0, 0) }, LinearLayout.LayoutParams(0, dp(56), 1f))
-        header.addView(button(if (page == "home") getString(R.string.car_home) else getString(R.string.back), false) {
-            if (page == "home") startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME))
-            else { page = "home"; render() }
-        }, LinearLayout.LayoutParams(dp(130), dp(56)))
+        header.addView(
+            ImageView(this).apply {
+                setImageResource(R.drawable.ic_carplay)
+                contentDescription = getString(R.string.carplay)
+            },
+            LinearLayout.LayoutParams(if (compact) dp(24) else dp(36), if (compact) dp(24) else dp(36)),
+        )
+        header.addView(
+            label(getString(R.string.diplay), if (compact) 18 else 26, TEXT, true).apply {
+                setPadding(if (compact) dp(8) else dp(12), 0, 0, 0)
+            },
+            LinearLayout.LayoutParams(0, if (compact) dp(36) else dp(56), 1f),
+        )
+        if (page != "home" || !compact) {
+            header.addView(
+                button(if (page == "home") getString(R.string.car_home) else getString(R.string.back), false) {
+                    if (page == "home") startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME))
+                    else { page = "home"; render() }
+                },
+                LinearLayout.LayoutParams(if (compact) dp(80) else dp(130), if (compact) dp(36) else dp(56)),
+            )
+        }
         content.addView(header)
-        content.addView(space(24))
+        content.addView(space(if (compact) 8 else 24))
         when (page) {
             "connection" -> connectionSetup(content)
             "settings" -> settings(content)
@@ -184,6 +215,41 @@ class DiPlayActivity : ComponentActivity() {
     }
 
     private fun home(content: LinearLayout) {
+        val compact = isCompactLayout
+        if (compact) {
+            val card = card().apply { setPadding(dp(12), dp(10), dp(12), dp(10)) }
+            status = label(getString(R.string.ready_when_you_are), 16, TEXT, true).apply {
+                setPadding(0, 0, 0, dp(8))
+            }
+            card.addView(status)
+            connectButton = button(getString(R.string.connect_phone), true) {
+                if (CarPlayBackgroundSession.hasSession()) openProjection()
+                else connect(true)
+            }
+            card.addView(connectButton, matchButton(0, 44))
+
+            val buttonRow = row().apply {
+                setPadding(0, dp(8), 0, 0)
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            val usbBtn = button(getString(R.string.connect_with_usb), false) { connect(false) }
+            val settingsBtn = button(getString(R.string.settings), false) { page = "settings"; render() }
+            buttonRow.addView(usbBtn, LinearLayout.LayoutParams(0, dp(38), 1f))
+            buttonRow.addView(space(8), LinearLayout.LayoutParams(dp(8), 1))
+            buttonRow.addView(settingsBtn, LinearLayout.LayoutParams(0, dp(38), 1f))
+            card.addView(buttonRow)
+
+            disconnectButton = button(getString(R.string.disconnect), false) {
+                disconnectButton?.isEnabled = false
+                CarPlayBackgroundSession.stop { runOnUiThread { refreshStatus() } }
+            }.apply { visibility = View.GONE }
+            card.addView(disconnectButton, matchButton(8, 38))
+
+            content.addView(card)
+            setupError?.let { content.addView(label(it, 13, WARNING).apply { setPadding(0, dp(6), 0, 0) }) }
+            return
+        }
+
         val wide = resources.configuration.screenWidthDp >= 850
         val body = column()
         val left = column()
@@ -258,6 +324,18 @@ class DiPlayActivity : ComponentActivity() {
     private fun settings(content: LinearLayout) {
         content.addView(label(getString(R.string.your_drive_your_way), 34, TEXT, true))
         content.addView(label(getString(R.string.apply_reconnects_carplay_for_size_resolution_music_buffer), 17, MUTED).apply { setPadding(0, dp(8), 0, dp(24)) })
+        section(content, getString(R.string.carplay_controls), R.drawable.ic_dp_display) { card ->
+            val gestureFingers = listOf(2, 3, 4)
+            choice(card, getString(R.string.settings_gesture_fingers_label),
+                gestureFingers.map { getString(R.string.settings_gesture_fingers_option, it) },
+                gestureFingers.indexOf(AirPlayPersistence.loadSettingsGestureFingers(this)).coerceAtLeast(0),
+                reconnects = false) {
+                AirPlayPersistence.saveSettingsGestureFingers(this, gestureFingers[it])
+            }
+            card.addView(label(getString(R.string.settings_gesture_fingers_hint), 14, MUTED).apply {
+                setPadding(0, dp(10), 0, 0)
+            })
+        }
         section(content, getString(R.string.connection_setup), R.drawable.ic_dp_connection) { card ->
             card.addView(label(getString(R.string.choose_how_to_connect_follow_the_setup_steps_and_save_your), 16, MUTED))
             card.addView(button(getString(R.string.open_connection_setup), false) { page = "connection"; render() }, matchButton(12, 60))
@@ -278,8 +356,41 @@ class DiPlayActivity : ComponentActivity() {
             card.addView(button("${getString(R.string.choose_iphone_prefix)}${DiPlayPreferences.phoneName(this)}", false) { choosePhone() }, matchButton(12, 60))
         }
         section(content, getString(R.string.display_and_performance), R.drawable.ic_dp_display) { card ->
+            val nightModes = CarPlayNightMode.entries
+            choice(
+                card,
+                getString(R.string.carplay_night_mode),
+                listOf(
+                    getString(R.string.carplay_night_system),
+                    getString(R.string.carplay_night_ambient),
+                    getString(R.string.carplay_night_day),
+                    getString(R.string.carplay_night_night),
+                ),
+                nightModes.indexOf(AirPlayPersistence.loadCarPlayNightMode(this)),
+                reconnects = false,
+            ) { index ->
+                AirPlayPersistence.saveCarPlayNightMode(this, nightModes[index])
+            }
+            card.addView(label(getString(R.string.carplay_night_hint), 14, MUTED))
+            card.addView(label(getString(R.string.carplay_night_time_note), 14, MUTED).apply {
+                setPadding(0, 0, 0, dp(18))
+            })
+            ambientLightThresholdControl(card)
+            nightDelaySettingControl(card, R.string.ambient_delay_title, R.string.ambient_delay_hint,
+                0..60, 2, R.string.ambient_delay_summary, { AirPlayPersistence.loadAmbientDelaySeconds(this) },
+                save = { AirPlayPersistence.saveAmbientDelaySeconds(this, it) })
+            card.addView(button(getString(R.string.picture_adjustments), false) {
+                startActivity(Intent(this, CarPlayHostActivity::class.java)
+                    .putExtra("picture_controls", true).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
+            }, matchButton(0, 56).apply { bottomMargin = dp(24) })
             carPlaySizeControl(card)
-            choice(card, getString(R.string.resolution), listOf(getString(R.string.resolution_native), getString(R.string.s_80_lighter_load), getString(R.string.s_60_lightest_load)), listOf(10, 8, 6).indexOf(AirPlayPersistence.loadDisplayScaleTenths(this)).coerceAtLeast(0)) { AirPlayPersistence.saveDisplayScaleTenths(this, listOf(10, 8, 6)[it]) }
+            resolutionSettingControl(
+                card, R.string.resolution, R.string.custom_resolution_hint,
+                CarPlayDisplayScale.MIN_PERCENT..CarPlayDisplayScale.MAX_PERCENT, 100,
+                R.string.custom_resolution_summary,
+                { AirPlayPersistence.loadDisplayScalePercent(this) }, reconnects = true,
+                save = { AirPlayPersistence.saveDisplayScalePercent(this, it) },
+            )
             val bufferPresets = com.shilapi.xcertplay.media.MediaAudioBuffer.presets
             choice(card, getString(R.string.music_buffer), listOf(getString(R.string.s_300_ms_default), getString(R.string.s_500_ms), getString(R.string.s_1000_ms_most_stable)),
                 bufferPresets.indexOf(AirPlayPersistence.loadMediaBufferMillis(this)).coerceAtLeast(0)) {
@@ -288,8 +399,16 @@ class DiPlayActivity : ComponentActivity() {
             choice(card, getString(R.string.frame_rate), listOf(getString(R.string.s_30_fps_lighter_load), getString(R.string.s_60_fps_smoother_motion)), if (AirPlayPersistence.loadFps(this) == 60) 1 else 0) { AirPlayPersistence.saveFps(this, if (it == 1) 60 else 30) }
             toggle(card, getString(R.string.efficient_video), getString(R.string.use_hevc_leave_off_for_the_widest_head_unit_compatibility), AirPlayPersistence.loadHevcEnabled(this)) { AirPlayPersistence.saveHevcEnabled(this, it) }
             toggle(card, getString(R.string.right_hand_drive), getString(R.string.place_carplay_s_controls_closer_to_the_driver), AirPlayPersistence.loadRightHandDrive(this)) { AirPlayPersistence.saveRightHandDrive(this, it) }
-            toggle(card, getString(R.string.full_screen), getString(R.string.hide_the_car_s_system_bars_while_carplay_is_open), AirPlayPersistence.loadHideTopBar(this) && AirPlayPersistence.loadHideBottomBar(this)) {
-                AirPlayPersistence.saveHideTopBar(this, it); AirPlayPersistence.saveHideBottomBar(this, it)
+            addSystemBarControls(
+                hideTopBar = AirPlayPersistence.loadHideTopBar(this),
+                hideBottomBar = AirPlayPersistence.loadHideBottomBar(this),
+                onHideTopBarChanged = { AirPlayPersistence.saveHideTopBar(this, it) },
+                onHideBottomBarChanged = { AirPlayPersistence.saveHideBottomBar(this, it) },
+            ) { label, checked, onChanged ->
+                toggle(card, getString(label), getString(R.string.hide_the_car_s_system_bars_while_carplay_is_open), checked, save = onChanged)
+            }
+            toggle(card, getString(R.string.adapt_pip_resolution), getString(R.string.adapt_pip_resolution_description), AirPlayPersistence.loadAdaptPipResolution(this)) {
+                AirPlayPersistence.saveAdaptPipResolution(this, it)
             }
         }
         section(content, getString(R.string.audio_routing)) { card ->
@@ -300,6 +419,10 @@ class DiPlayActivity : ComponentActivity() {
                     AirPlayPersistence.loadAdvancedAudioChannelMapping(this)) {
                     AirPlayPersistence.saveAdvancedAudioChannelMapping(this, it)
                 }
+            }
+            toggle(card, getString(R.string.navigation_audio_focus), getString(R.string.navigation_audio_focus_hint),
+                AirPlayPersistence.loadNavigationAudioFocusEnabled(this)) { enabled ->
+                AirPlayPersistence.saveNavigationAudioFocusEnabled(this, enabled)
             }
             mediaChannelControl(card)
             navigationChannelControl(card)
@@ -561,7 +684,7 @@ class DiPlayActivity : ComponentActivity() {
 
     private fun wirelessLinkControls(parent: LinearLayout) {
         val mode = if (pendingCarHotspotSetup) WirelessHotspotMode.MANUAL else AirPlayPersistence.loadWirelessHotspotMode(this)
-        val modes = listOf(WirelessHotspotMode.MANUAL, WirelessHotspotMode.WIFI_P2P)
+        val modes = AirPlayPersistence.availableWirelessHotspotModes()
         val titles = listOf(getString(R.string.built_in_car_hotspot), getString(R.string.wifi_direct))
         val descriptions = listOf(
             getString(R.string.hotspot_mode_manual_desc),
@@ -642,7 +765,7 @@ class DiPlayActivity : ComponentActivity() {
     }
 
     private fun showChannelDialog(title: String, current: Int, navigation: Boolean, onApply: (Int) -> Unit) {
-        val preview = AudioChannelPreview { channel ->
+        val preview = AudioChannelPreview(this) { channel ->
             toast(getString(R.string.contrib_audio_home_channel_preview_unavailable, channel))
         }
         val channels = AirPlayPersistence.AUDIO_CHANNELS
@@ -864,6 +987,211 @@ class DiPlayActivity : ComponentActivity() {
             .setNegativeButton(getString(R.string.cancel), null).show()
     }
 
+    private fun resolutionSettingControl(
+        parent: LinearLayout,
+        titleId: Int,
+        hintId: Int,
+        range: IntRange,
+        default: Int,
+        summaryId: Int,
+        load: () -> Int,
+        reconnects: Boolean = false,
+        save: (Int) -> Unit,
+    ) {
+        val title = getString(titleId)
+        fun summary() = getString(R.string.contrib_audio_home_choice_summary, title, getString(summaryId, load()))
+        val control = button(summary(), false) {}
+        control.setOnClickListener {
+            val fields = column().apply { setPadding(dp(24), dp(8), dp(24), dp(8)) }
+            val input = EditText(this).apply {
+                setSingleLine()
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                setText(load().toString())
+            }
+            fields.addView(input)
+            fields.addView(label(getString(hintId), 14, MUTED))
+            val dialog = AlertDialog.Builder(this).setTitle(title).setView(fields)
+                .setPositiveButton(getString(if (reconnects && CarPlayBackgroundSession.hasSession()) R.string.apply_and_reconnect else R.string.save), null)
+                .setNegativeButton(getString(R.string.cancel), null)
+                .setNeutralButton(getString(R.string.resolution_reset_defaults), null).create()
+            dialog.setOnShowListener {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val value = input.text.toString().trim().toIntOrNull()
+                    if (value == null || value !in range) {
+                        input.error = getString(R.string.resolution_number_error, range.first, range.last)
+                    } else {
+                        val changed = value != load()
+                        save(value)
+                        control.text = summary()
+                        dialog.dismiss()
+                        if (changed && reconnects && CarPlayBackgroundSession.hasSession()) {
+                            connect(AirPlayPersistence.loadWirelessEnabled(this))
+                        }
+                    }
+                }
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                    input.setText(default.toString())
+                    input.error = null
+                }
+            }
+            showResolutionSettingsDialog(dialog, fields)
+        }
+        parent.addView(control, matchButton(0, 60))
+        parent.addView(space(12))
+    }
+
+    private fun showResolutionSettingsDialog(dialog: AlertDialog, fields: LinearLayout) {
+        dialog.show()
+        // AlertDialog replaces the custom view's parameters with MATCH_PARENT. Keep numeric
+        // content at its natural height, including on vendor dialog layouts with weighted panels.
+        fields.layoutParams = fields.layoutParams.apply { height = ViewGroup.LayoutParams.WRAP_CONTENT }
+        val decor = dialog.window?.decorView ?: return
+        var panel = fields.parent as? ViewGroup
+        while (panel != null && panel !== decor) {
+            val params = panel.layoutParams
+            if (params is LinearLayout.LayoutParams && params.weight > 0f) {
+                panel.layoutParams = params.apply {
+                    weight = 0f
+                    height = ViewGroup.LayoutParams.WRAP_CONTENT
+                }
+                break
+            }
+            panel = panel.parent as? ViewGroup
+        }
+        dialog.window?.let { window ->
+            window.setLayout(window.attributes.width, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        // Run another traversal after the platform has finished its initial button measurement.
+        decor.post { if (dialog.isShowing) decor.requestLayout() }
+    }
+
+    private fun nightDelaySettingControl(
+        parent: LinearLayout,
+        titleId: Int,
+        hintId: Int,
+        range: IntRange,
+        default: Int,
+        summaryId: Int,
+        load: () -> Int,
+        reconnects: Boolean = false,
+        save: (Int) -> Unit,
+    ) {
+        val title = getString(titleId)
+        fun summary() = getString(R.string.contrib_audio_home_choice_summary, title, getString(summaryId, load()))
+        val control = button(summary(), false) {}
+        control.setOnClickListener {
+            val fields = column().apply { setPadding(dp(24), dp(8), dp(24), dp(8)) }
+            val input = EditText(this).apply {
+                setSingleLine()
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                setText(load().toString())
+            }
+            fields.addView(input)
+            fields.addView(label(getString(hintId), 14, MUTED))
+            val dialog = AlertDialog.Builder(this).setTitle(title).setView(fields)
+                .setPositiveButton(getString(if (reconnects && CarPlayBackgroundSession.hasSession()) R.string.apply_and_reconnect else R.string.save), null)
+                .setNegativeButton(getString(R.string.cancel), null)
+                .setNeutralButton(getString(R.string.ambient_light_reset_defaults), null).create()
+            dialog.setOnShowListener {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val value = input.text.toString().trim().toIntOrNull()
+                    if (value == null || value !in range) {
+                        input.error = getString(R.string.custom_number_error, range.first, range.last)
+                    } else {
+                        val changed = value != load()
+                        save(value)
+                        control.text = summary()
+                        dialog.dismiss()
+                        if (changed && reconnects && CarPlayBackgroundSession.hasSession()) {
+                            connect(AirPlayPersistence.loadWirelessEnabled(this))
+                        }
+                    }
+                }
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                    input.setText(default.toString())
+                    input.error = null
+                }
+            }
+            showNightModeSettingsDialog(dialog, fields)
+        }
+        parent.addView(control, matchButton(0, 60))
+        parent.addView(space(12))
+    }
+
+    private fun ambientLightThresholdControl(parent: LinearLayout) {
+        val title = getString(R.string.ambient_light_threshold_title)
+        fun summary(): String = getString(
+            R.string.contrib_audio_home_choice_summary,
+            title,
+            getString(R.string.ambient_light_threshold_summary, AirPlayPersistence.loadAmbientLightThreshold(this).lux),
+        )
+
+        val control = button(summary(), false) {}
+        control.setOnClickListener {
+            val fields = column().apply { setPadding(dp(24), dp(8), dp(24), dp(8)) }
+            fields.addView(label(getString(R.string.ambient_light_threshold_value), 16, MUTED))
+            val input = EditText(this).apply {
+                setSingleLine()
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                setText(AirPlayPersistence.loadAmbientLightThreshold(this@DiPlayActivity).lux.toString())
+            }
+            fields.addView(input)
+            fields.addView(label(getString(R.string.ambient_light_threshold_hint), 14, MUTED))
+            val dialog = AlertDialog.Builder(this)
+                .setTitle(title)
+                .setView(fields)
+                .setPositiveButton(getString(R.string.save), null)
+                .setNegativeButton(getString(R.string.cancel), null)
+                .setNeutralButton(getString(R.string.ambient_light_reset_defaults), null)
+                .create()
+
+            dialog.setOnShowListener {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener saveThreshold@{
+                    val lux = input.text.toString().trim().toIntOrNull()
+                    if (lux == null || !AmbientLightThreshold.isValid(lux)) {
+                        input.error = getString(R.string.ambient_light_threshold_error)
+                        return@saveThreshold
+                    }
+                    AirPlayPersistence.saveAmbientLightThreshold(this, AmbientLightThreshold(lux))
+                    control.text = summary()
+                    dialog.dismiss()
+                }
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                    input.setText(AmbientLightThreshold.DEFAULT_LUX.toString())
+                    input.error = null
+                }
+            }
+            showNightModeSettingsDialog(dialog, fields)
+        }
+        parent.addView(control, matchButton(0, 60))
+        parent.addView(space(12))
+    }
+
+    private fun showNightModeSettingsDialog(dialog: AlertDialog, fields: LinearLayout) {
+        dialog.show()
+        // AlertDialog replaces the custom view's parameters with MATCH_PARENT. Keep numeric
+        // content at its natural height, including on vendor dialog layouts with weighted panels.
+        fields.layoutParams = fields.layoutParams.apply { height = ViewGroup.LayoutParams.WRAP_CONTENT }
+        val decor = dialog.window?.decorView ?: return
+        var panel = fields.parent as? ViewGroup
+        while (panel != null && panel !== decor) {
+            val params = panel.layoutParams
+            if (params is LinearLayout.LayoutParams && params.weight > 0f) {
+                panel.layoutParams = params.apply {
+                    weight = 0f
+                    height = ViewGroup.LayoutParams.WRAP_CONTENT
+                }
+                break
+            }
+            panel = panel.parent as? ViewGroup
+        }
+        dialog.window?.let { window ->
+            window.setLayout(window.attributes.width, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        // Run another traversal after the platform has finished its initial button measurement.
+        decor.post { if (dialog.isShowing) decor.requestLayout() }
+    }
+
     private fun carPlaySizeControl(parent: LinearLayout) {
         val sizes = com.shilapi.xcertplay.airplay.CarPlaySize.entries
         val current = com.shilapi.xcertplay.airplay.CarPlaySize.fromWidthMillimeters(AirPlayPersistence.loadWidthPhysicalMm(this))
@@ -899,13 +1227,15 @@ class DiPlayActivity : ComponentActivity() {
         }
         val open = {
             AirPlayPersistence.saveWirelessEnabled(this, wireless)
-            openProjection()
+            openProjection(retryConnection = true)
         }
         if (CarPlayBackgroundSession.hasSession()) CarPlayBackgroundSession.stop { runOnUiThread { open() } }
         else open()
     }
-    private fun openProjection() {
-        startActivity(Intent(this, CarPlayHostActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
+    private fun openProjection(retryConnection: Boolean = false) {
+        startActivity(Intent(this, CarPlayHostActivity::class.java)
+            .putExtra(EXTRA_RETRY_CONNECTION, retryConnection)
+            .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
     }
     private fun choosePhone() {
         if (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
@@ -1039,9 +1369,12 @@ class DiPlayActivity : ComponentActivity() {
                     appendLine("CarPlay setup: ${if (setupError == null) "ready" else "authentication unavailable"}")
                     appendLine("Saved video preference (may differ from active session): ${if (AirPlayPersistence.loadHevcEnabled(appContext)) "HEVC" else "H.264"}; ${AirPlayPersistence.loadFps(appContext)} fps")
                     appendLine("CarPlay size: ${com.shilapi.xcertplay.airplay.CarPlaySize.fromWidthMillimeters(AirPlayPersistence.loadWidthPhysicalMm(appContext)).label}")
-                    appendLine("Saved resolution preference (may differ from active session): ${AirPlayPersistence.loadDisplayScaleTenths(appContext) * 10}%")
+                    appendLine("Saved resolution preference (may differ from active session): ${AirPlayPersistence.loadDisplayScalePercent(appContext)}%")
                     appendLine("Session: ${if (CarPlayBackgroundSession.active) "active" else if (CarPlayBackgroundSession.hasSession()) "connecting" else "stopped"}")
                     appendLine("Head-unit board: ${Build.BOARD}; hardware: ${Build.HARDWARE}; build: ${Build.DISPLAY}")
+                    appendLine()
+                    appendLine("--- Audio routing ---")
+                    appendLine(AudioRoutingDiagnostics.report(appContext))
                     appendLine()
                     appendLine("--- Last display negotiation (timestamps distinguish it from current settings) ---")
                     appendLine(DisplayDiagnosticSnapshot.report(appContext))

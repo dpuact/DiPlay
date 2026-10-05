@@ -38,6 +38,28 @@ class MapEmbedSurfaceControlHostShadow {
 @Config(sdk = [33], shadows = [MapEmbedSurfaceControlHostShadow::class])
 @LooperMode(LooperMode.Mode.PAUSED)
 class MapEmbedServiceTest {
+    @Test @Config(sdk = [27], shadows = [])
+    fun oldAndroidRejectsMapMessagesAndShutsDownWithoutSurfaceControl() {
+        val controller = Robolectric.buildService(MapEmbedService::class.java).create()
+        val service = controller.get()
+        try {
+            val replies = mutableListOf<Message>()
+            val client = Messenger(Handler(Looper.getMainLooper()) { replies += Message.obtain(it); true })
+            val endpoint = Messenger(service.onBind(Intent(MapEmbedService.ACTION)))
+            for (kind in listOf(MapEmbedService.MSG_ATTACH, MapEmbedService.MSG_RESIZE, MapEmbedService.MSG_DETACH)) {
+                endpoint.send(Message.obtain(null, kind).apply { replyTo = client })
+                shadowOf(Looper.getMainLooper()).idle()
+                assertEquals(MapEmbedService.MSG_ERROR, replies.last().what)
+                assertEquals(MapEmbedService.ERROR_UNSUPPORTED, replies.last().data.getString(MapEmbedService.KEY_ERROR))
+            }
+            AirPlayPersistence.saveLauncherMapSharing(service, true)
+            AirPlayPersistence.saveLauncherMapSharing(service, false)
+            shadowOf(Looper.getMainLooper()).idle()
+        } finally {
+            controller.destroy()
+        }
+    }
+
     @Test fun disablingSharingReleasesAlreadyAttachedMaps() {
         MapEmbedSurfaceControlHostShadow.releases = 0
         val controller = Robolectric.buildService(MapEmbedService::class.java).create()

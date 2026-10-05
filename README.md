@@ -1,60 +1,82 @@
-# DiPlay
+# DiPlay 欧拉好猫哈曼车机适配版
 
-**CarPlay for compatible BYD Android head units.** Wired and wireless, with the familiar DiAuto interface. Independent app: `com.shihab.diplay`.
+基于 [shihabal3amri/DiPlay](https://github.com/shihabal3amri/DiPlay) 的社区适配分支，
+**已针对 2024 款欧拉好猫的哈曼车机完成 Android 8.1 / Intel 平台适配**。
+本分支面向个人研究、车友交流和兼容性维护，不提供商业销售、付费授权或商业技术支持。
+这项维护定位不改变原有代码许可证赋予的权利；素材另有许可限制，见下文。
 
-> **BYD support scope:** These projects focus on BYD cars. They may work on other brands, but other brands are unsupported and there are no plans to add support or fix brand-specific incompatibilities.
+- 上游项目：**shihabal3amri/DiPlay**，保留原作者及贡献者署名。
+- 适配分支：**android81-harman**。
+- 当前版本：**v10**，`0.2.10-ora-android81-test10-wheel`，版本号 `39`。
+- 安装包名：`com.shihab.diplay.ora81`。
+- 基础版本：上游 `0.2.10`，选择性移植 `0.2.11 / 0.2.12` 的音乐信息及显示改进。
 
-[Download & website](https://shihabal3amri.github.io/DiPlay/) · [Release](https://github.com/shihabal3amri/DiPlay/releases/tag/v0.2.10) · [Report a problem](https://github.com/shihabal3amri/DiPlay/issues/new/choose)
+## 适配范围与验证状态
 
-![DiPlay home](site/assets/home.png)
+| 项目 | 范围 / 结果 |
+| --- | --- |
+| 已适配车型 | 2024 款欧拉好猫，哈曼车机 |
+| 系统与平台 | Android 8.1（API 27），Intel x86 / x86_64 |
+| 已确认可用 | 车载热点无线连接、音乐播放、独立导航播报音量；v8 蓝牙交接修复已由车主验证 |
+| v9 / v9.1 | 音乐信息内存优化、画面调节及显示选项、中文错字修正；新增显示功能仍需各车验证 |
+| v10 | 修复首次连接媒体控制初始化和状态判断；方向盘实际恢复效果待实车确认 |
+| 本地验证 | shared 444 项 + common 319 项测试通过；三模块 lint 零错误；Android 8.1 模拟器覆盖升级及设置保留验证通过 |
+| 尚未承诺 | 其他年份、芯片和固件；Siri、通话、USB 等功能的完整实车兼容性 |
 
-## 0.2.10 — public preview
+“已适配”指上述具体平台和已验证功能，不表示所有欧拉车型、固件和每项新功能均已通过实车测试。
+这是独立社区修改版，不代表欧拉、长城汽车、Harman、Apple 或上游作者的官方支持。
 
-Install on the **car**, not the iPhone. No jailbreak, dongle, Mac, account or authentication server is required for use. Core CarPlay does not require ADB; optional dashboard, battery, wheel-speed and parked-video features do. Your head unit must permit APK installation. Wireless supports Wi-Fi Direct or the car’s existing hotspot; Wi-Fi Direct requires Android 10+; the APK supports Android 9+ for wired use.
+## 主要改动
 
-- Wired USB and wireless CarPlay with local authentication.
-- BYD HUD navigation with arrows, distance and street names on verified firmware.
-- Car hotspot support, improved audio buffering and saved receive diagnostics.
-- Automatic address discovery, fixed-channel Wi-Fi fallbacks and successful-configuration memory.
-- Icon/text size, resolution and frame rate; applying a display change reconnects CarPlay.
-- Local diagnostic export. Reports are sent only if you choose to share them.
-- Separate installation alongside DiAuto. Run one projection app at a time.
+1. **Android 8.1 与 Intel 兼容**：处理旧系统音频、热点、网络及界面 API 差异。
+2. **无线连接**：保留已验证的车载热点 IPv4 连接流程。
+3. **媒体与导航音量分离**：独立导航焦点与播报窗口处理；保留车机有效的输出通道选择。
+4. **重启后自动暂停处理**：避免重复媒体焦点申请，保留明确播放/暂停语义，并为相同 iPhone 做有范围限制的 Harman 蓝牙媒体交接。
+5. **首次连接方向盘切歌**：连接完成即建立媒体控制会话；区分未知状态与明确暂停，处理前台媒体键、按键重复和旧会话回调。
+6. **歌曲信息与内存优化**：进度变化不重复发布封面和歌曲元数据，改善切歌封面衔接。
+7. **显示功能**：画面亮度、对比度、饱和度、色温；30%～160% 自定义分辨率、日夜模式、状态栏和导航栏、手势及分屏布局。
+8. **欧拉界面标识**：CarPlay 返回车机入口使用“欧拉”名称与对应图标。
 
-This is **not an Apple-certified product**. The APK bundles an experimental accessory identity recovered from public Carlinkit firmware, not a newly provisioned MFi identity for DiPlay. A bundled private key is extractable. Acceptance after future iOS updates, reliability across head units and suitability of that identity for general distribution are unresolved. This release invites community testing; it is not a guarantee of universal compatibility.
+## 使用与回归检查
 
-Earlier releases were tested on the development DiLink5.1 car: live windshield guidance and street names work, Car hotspot now starts CarPlay, and Wi-Fi Direct performance is substantially improved. Occasional audio cutouts remain and are deferred to a later update. The floating-map test build was installed on the development DiLink 5.1 car; feedback led to the pinch corrections in 0.2.9. Earlier wheel-speed and video contributions were tested on a BYD Tang with DiLink 5.0 and an iPhone 15 Pro on iOS 27; wheel-speed dead reckoning in tunnels remains unverified. Broader head-unit and iOS compatibility is not guaranteed. The HUD firmware scope and cleanup limits are documented in [BYD navigation](docs/BYD_NAVIGATION.md).
+应用安装在车机上。对已安装本分支且签名一致的版本，可覆盖升级并保留设置。
+个人重新编译的 APK 签名通常不同，不能直接覆盖既有签名的安装包。
 
-## What’s new in 0.2.10
+1. Android 8.1 使用车载热点连接模式；Wi-Fi Direct 模式需要较新 Android，不能据上游说明推断本车支持。
+2. 要保留已验证的音乐/导航音量分离，请开启 **音频焦点** 与 **导航音频焦点**，并保留原来有效的音频通道设置。
+3. 测试 v10 时，重启车机、连接 CarPlay 后，先不操作手机音乐，直接测试方向盘上一首/下一首。
+4. 分别检查连接后音乐已经播放和未播放两种情况，再检查导航播报及独立音量。
 
-- CarPlay song metadata, playback position and album artwork for compatible Android launchers and media displays.
-- Available-port selection when another service occupies AirPlay port 7000, with the selected port advertised to the iPhone.
-- Targeted USBMUX padding handling that preserves complete following frames, and USB startup without completed wireless-hotspot settings.
-- Wi-Fi Direct compatibility for unknown reported security types, bounded busy-channel retries and 5 GHz to 2.4 GHz fallback.
-- Available Android echo cancellation and noise suppression during CarPlay calls, with previous audio mode restored afterward.
-- BYD CAN/CANFD battery-protocol detection and a saved show/hide setting for the home-screen dashboard-map mirror.
-- Optional video while in P uses a new player with seeking and ten-second skip controls. URL validation and redirects protect local Android resources; protected video remains unsupported.
-- More Ukrainian translations and bounded Bluetooth, USB restart, boot and microphone diagnostics in exported reports.
+画面调节影响 CarPlay 主画面，不等于车机背光调节。高分辨率会增加解码负担；环境光模式需要传感器支持。
 
-Optional video requires network ADB and a valid parked-gear reading. Battery, dashboard and call effects depend on firmware and Android support. See [0.2.10 release notes](docs/RELEASE-NOTES-0.2.10.md) for all ten contributions, regression fixes and validation limits. Existing device-specific wireless loss, microphone and reconnect reports still need hardware testing.
+## 源码构建
 
-## Documentation
+完整适配记录、所需 Android SDK / NDK 和构建命令见 [Android 8.1 构建说明](docs/ORA_ANDROID81.md)。
 
-- [Install and connect](docs/INSTALL.md)
-- [Compatibility and troubleshooting](docs/COMPATIBILITY.md)
-- [Privacy and diagnostic reports](docs/PRIVACY.md)
-- [Build from source](docs/BUILD.md)
-- [Validation](docs/VALIDATION.md)
-- [Release notes](CHANGELOG.md)
-- [Credits and licenses](docs/THIRD_PARTY_NOTICES.md)
+仓库和 CI 提供**不包含本地认证身份与签名密钥的源码构建**。普通 `assembleDebug` 构建结果不等于此前单独交付的完整车机测试 APK。
+本次 GitHub 上传包含源码、测试与文档，不发布包含本地认证材料的 APK。
+上游实验性认证机制及限制见 [第三方说明](docs/THIRD_PARTY_NOTICES.md) 和构建文档。
 
-The website is available in English, Arabic, Russian, Ukrainian, Spanish and Simplified Chinese. The app interface supports those same six languages. Choose the app language in Settings; on Android 13+, it stays synchronized with Android’s per-app language setting.
+## 非商业维护与许可
 
-## Source and credits
+**本分支由社区按非商业方式维护，保留上游 GPL-3.0 / AGPL-3.0 及各文件已有许可，不为项目代码新增“禁止商用”条款。**
 
-Based on [xcertplay](https://github.com/shilapi/xcertplay), GPL-3.0. The home/settings UI and website adapt [DiAuto](https://github.com/shihabal3amri/DiAuto), AGPL-3.0; that license is included in `docs/licenses`. Preserve those notices when distributing modifications. CarPlay and its icon belong to Apple Inc.; no Apple or BYD affiliation or endorsement is implied.
+| 内容 | 适用说明 |
+| --- | --- |
+| 接收器及相应衍生代码 | 保留 [GPL-3.0](LICENSE) 及原有通知；GPL 本身允许商业使用和收费分发，同时要求履行相应义务 |
+| DiAuto 衍生界面 / 网站等 | 保留 [AGPL-3.0](docs/licenses/DiAuto-AGPL-3.0.txt) 及具体文件标识 |
+| BYDMate 导航图标 | 遵守随附 [PolyForm Noncommercial 1.0.0](shared/src/main/assets/byd-hud-icons/LICENSE-BYDMate.txt)，该非商业限制适用于这些素材 |
+| 欧拉名称与图标、CarPlay 名称与图标 | 权利归各自权利人；代码许可证不自动授予品牌、标识或其他素材的使用许可 |
 
-This repository starts with a clean public source snapshot. Local research, tester reports and release-signing secrets are excluded. The complete source corresponding to the APK is provided with every release; experimental runtime identity assets are described separately in the build instructions and notices.
+包含非商业许可素材的分发或使用，必须单独符合相应条款，不能仅凭代码的 GPL 许可忽略素材限制。
+详细边界见 [非商业维护与素材许可说明](docs/LICENSING.zh-CN.md)。
 
-## Local release packaging
+## 致谢
 
-The release APK intentionally contains the experimental accessory identity. The Git repository and source archive exclude all accessory and Android signing keys; tests generate synthetic identities at runtime. Source/CI builds omit runtime identity assets by default. Local release builds explicitly select an external asset directory. Publishing the APK makes its bundled identity extractable; building locally does not preserve that identity's confidentiality.
+- [DiPlay / shihabal3amri](https://github.com/shihabal3amri/DiPlay)：直接上游。
+- [xcertplay / shilapi](https://github.com/shilapi/xcertplay)：接收器基础。
+- [DiAuto](https://github.com/shihabal3amri/DiAuto)：界面和网站基础。
+- [BYDMate / AndyShaman](https://github.com/AndyShaman/BYDMate)：保留在上游资源中的导航图标及 Required Notice。
+- 原项目贡献者及参与实车测试的车友。
+
+原始许可、署名和第三方通知见 [LICENSE](LICENSE)、[第三方说明](docs/THIRD_PARTY_NOTICES.md) 与 [素材目录](docs/licenses/)。

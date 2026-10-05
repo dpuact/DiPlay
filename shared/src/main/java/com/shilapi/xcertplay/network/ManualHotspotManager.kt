@@ -107,7 +107,8 @@ class ManualHotspotManager(
                 onDiagnostic("Manual hotspot configReadable=${apConfiguration != null} " +
                     "security=$security channelKnown=${channel > 0} " +
                     "hardwareAddressKnown=${localInterface.hardwareAddress != null} iface=${localInterface.name} " +
-                    "family=${if (localInterface.hostAddress is Inet6Address) "IPv6" else "IPv4"}")
+                    "family=${if (localInterface.hostAddress is Inet6Address) "IPv6" else "IPv4"} " +
+                    "addressPolicy=ipv4_preferred")
                 if (security != Iap2WirelessSecurity.NONE && passphrase.isEmpty()) {
                     throw IOException("Manual hotspot is secured but no passphrase was provided")
                 }

@@ -88,6 +88,12 @@ internal class MicrophoneUplink(
                 )
                 .setBufferSizeInBytes(bufferSize)
                 .build()
+        } catch (error: SecurityException) {
+            Log.w(TAG, "microphone permission is unavailable", error)
+            stats.failure(MicrophoneFailureStage.RECORDER_CREATION, error)
+            nextEncoder?.close()
+            running.set(false)
+            return false
         } catch (error: Exception) {
             Log.e(TAG, "microphone recorder creation failed", error)
             stats.failure(MicrophoneFailureStage.RECORDER_CREATION, error)

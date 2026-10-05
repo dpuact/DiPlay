@@ -1,5 +1,7 @@
 package com.shilapi.xcertplay
 
+import android.content.Context
+import com.shilapi.xcertplay.media.NavigationAudioFocus
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
@@ -14,7 +16,9 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.sin
 
 /** Plays one short tone through the same legacy stream route used by CarPlay audio. */
-internal class AudioChannelPreview(private val onUnavailable: (Int) -> Unit) : Closeable {
+internal class AudioChannelPreview(context: Context, private val onUnavailable: (Int) -> Unit) : Closeable {
+    private val navigationFocus = NavigationAudioFocus(context.applicationContext,
+        AirPlayPersistence.loadNavigationAudioFocusEnabled(context))
     private val mainHandler = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor { task ->
         Thread(task, "diplay-channel-preview").apply { isDaemon = true }
@@ -70,6 +74,7 @@ internal class AudioChannelPreview(private val onUnavailable: (Int) -> Unit) : C
                 check(built.state == AudioTrack.STATE_INITIALIZED) { "Audio output did not initialize" }
                 if (closed || generation.get() != request) return@submit
                 activeTrack.set(built)
+                if (navigation) navigationFocus.acquire(built)
                 built.setVolume(0.6f)
                 built.play()
                 var written = 0
@@ -93,7 +98,7 @@ internal class AudioChannelPreview(private val onUnavailable: (Int) -> Unit) : C
                 }
             } finally {
                 activeTrack.compareAndSet(track, null)
-                track?.let { runCatching { it.stop() }; it.release() }
+                track?.let { navigationFocus.release(it); runCatching { it.stop() }; it.release() }
             }
         }
     }

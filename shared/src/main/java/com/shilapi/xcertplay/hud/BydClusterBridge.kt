@@ -135,6 +135,8 @@ internal object BydClusterBridge {
     }
 
     // IS_BYD_MAP=true is required: the adapter drops foreign frames while it believes the stock map navigates.
+    // This Android framework flag is hidden from the SDK but required by the BYD adapter.
+    @android.annotation.SuppressLint("WrongConstant")
     private fun baseIntent(keyType: Int) = Intent(AMAP_ACTION).apply {
         setPackage(AMAP_PACKAGE)
         addFlags(FLAG_RECEIVER_INCLUDE_BACKGROUND)

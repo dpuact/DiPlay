@@ -198,6 +198,7 @@ class CarPlayController(
     @Volatile private var mfiSession: MfiSession? = null
     @Volatile private var mux: Iap2UsbMuxHost? = null
     @Volatile private var csm: Iap2Session? = null
+    private val sessionStateLock = Any()
     @Volatile private var activeSession: AirPlaySession? = null
     private val clusterUiLock = Any()
     private var clusterUiStream: Pair<AirPlaySession, Int>? = null
@@ -226,6 +227,8 @@ class CarPlayController(
     @Volatile private var wirelessDiagnostics: WirelessStartupDiagnostics? = null
     @Volatile private var bluetoothSocket: BluetoothSocket? = null
     @Volatile private var bluetoothStream: BluetoothRfcommDuplexStream? = null
+    private val bluetoothMediaHandoffLock = Any()
+    @Volatile private var bluetoothMediaHandoff: HarmanBluetoothMediaHandoff? = null
     @Volatile private var wirelessTunnelChannel: Iap2Session? = null
     @Volatile private var wirelessIdentification: Iap2IdentificationConfig? = null
     @Volatile private var wirelessAirPlayEndpoint: Iap2WirelessCarPlayEndpoint? = null
@@ -257,7 +260,8 @@ class CarPlayController(
     }
 
     private val sessionListener = object : AirPlaySessionListener {
-        override fun onSessionActive(session: AirPlaySession) {
+        override fun onSessionActive(session: AirPlaySession): Unit = synchronized(sessionStateLock) {
+            if (closed) return@synchronized
             if (activeSession !== session) {
                 BydNavigationOutputs.start(appContext)
                 com.shilapi.xcertplay.glance.CarPlayGlance.setConnected(true)
@@ -269,10 +273,18 @@ class CarPlayController(
                 "AirPlay session active controller=${session.controllerId ?: "unknown"} " +
                     "peer=${session.host}",
             )
-            uiListener?.onSessionActive(session)
+            mainHandler.post {
+                synchronized(sessionStateLock) {
+                    if (!closed && activeSession === session) uiListener?.onSessionActive(session)
+                }
+            }
         }
 
-        override fun onSessionEnded(session: AirPlaySession) {
+        override fun onSessionEnded(session: AirPlaySession): Unit = synchronized(sessionStateLock) {
+            if (activeSession !== session) {
+                debugLog("Ignoring inactive AirPlay connection close peer=${session.host}")
+                return@synchronized
+            }
             if (activeSession === session) {
                 activeSession = null
                 BydNavigationOutputs.endNow()
@@ -287,7 +299,12 @@ class CarPlayController(
                 }
             }
             debugLog("AirPlay session ended peer=${session.host}")
-            uiListener?.onSessionEnded(session)
+            mainHandler.post {
+                synchronized(sessionStateLock) {
+                    // A newer session may already be active when the UI catches up.
+                    if (!closed && activeSession == null) uiListener?.onSessionEnded(session)
+                }
+            }
         }
 
         override fun onTransportError(message: String) {
@@ -355,10 +372,17 @@ class CarPlayController(
         listener: AirPlaySessionListener,
         reportStatus: (CarPlayStatus) -> Unit,
     ) {
-        uiListener = listener
-        uiStatusReporter = reportStatus
+        synchronized(sessionStateLock) {
+            uiListener = listener
+            uiStatusReporter = reportStatus
+        }
         mainHandler.post {
-            if (uiListener === listener) lastReportedStatus?.let(reportStatus)
+            synchronized(sessionStateLock) {
+                if (!closed && uiListener === listener) {
+                    lastReportedStatus?.let(reportStatus)
+                    activeSession?.let(listener::onSessionActive)
+                }
+            }
         }
     }
 
@@ -979,9 +1003,21 @@ class CarPlayController(
                 ?: throw IOException("Bluetooth adapter is unavailable")
             if (!adapter.isEnabled) throw IOException("Bluetooth is not enabled")
             val device = selectWirelessBluetoothDevice(adapter)
+            if (HarmanBluetoothMediaHandoff.supported()) {
+                synchronized(bluetoothMediaHandoffLock) {
+                    if (!isStaleWirelessRun(generation)) {
+                        bluetoothMediaHandoff?.close()
+                        bluetoothMediaHandoff = HarmanBluetoothMediaHandoff(
+                            appContext, adapter, device,
+                            isCurrent = { !isStaleWirelessRun(generation) },
+                            report = ::debugLog,
+                        )
+                    }
+                }
+            }
             val hostBluetoothMac = accessoryBluetoothMac(adapter)
             debugLog(
-                "wireless selected Bluetooth target name=${device.name ?: "unknown"} " +
+                "wireless selected Bluetooth target name=${bluetoothDeviceName(device) ?: "unknown"} " +
                     "address=${device.address} localBt=$hostBluetoothMac",
             )
             val wirelessAirPlayConfig = airPlayConfig.copy(
@@ -1303,6 +1339,7 @@ class CarPlayController(
         if (!wirelessHandoffRequested.get() || !wirelessTunnelReady.get()) return
         if (!wirelessActiveReported.compareAndSet(false, true)) return
         val generation = wirelessGeneration.get()
+        val mediaHandoff = synchronized(bluetoothMediaHandoffLock) { bluetoothMediaHandoff }
         Thread(
             {
                 if (
@@ -1314,6 +1351,7 @@ class CarPlayController(
                 }
                 debugLog("wireless handoff ready; closing Bluetooth bootstrap transport")
                 closeBluetoothBootstrapTransport()
+                mediaHandoff?.start()
                 onStatus(CarPlayStatus.WirelessActive)
             },
             "xcertplay-wireless-handoff",
@@ -1824,14 +1862,20 @@ class CarPlayController(
     private fun isStaleWirelessRun(generation: Int): Boolean =
         closed || phase != Phase.WIRELESS || generation != wirelessGeneration.get()
 
+    private fun bluetoothDeviceName(device: BluetoothDevice): String? = try {
+        device.name
+    } catch (_: SecurityException) { null }
+
     private fun selectWirelessBluetoothDevice(adapter: BluetoothAdapter): BluetoothDevice {
-        val bonded = adapter.bondedDevices.orEmpty()
+        val bonded = try { adapter.bondedDevices.orEmpty() } catch (error: SecurityException) {
+            throw IOException("Allow Nearby devices permission to select your iPhone", error)
+        }
         config.wirelessBluetoothDeviceAddress?.let { selected ->
             return bonded.firstOrNull { it.address.equals(selected, ignoreCase = true) }
                 ?: throw IOException("The selected iPhone is no longer paired. Choose it again in DiPlay.")
         }
         val iPhones = bonded.filter { device ->
-            device.name?.contains("iPhone", ignoreCase = true) == true
+            bluetoothDeviceName(device)?.contains("iPhone", ignoreCase = true) == true
         }
         val directlyConnectedIPhones = iPhones.filter(::isBluetoothDeviceConnected)
         Log.i(
@@ -1851,7 +1895,7 @@ class CarPlayController(
         if (connectedIPhones.size > 1) {
             throw IOException(
                 "Multiple connected iPhones found: " +
-                    connectedIPhones.joinToString { "${it.name ?: "iPhone"} (${it.address})" },
+                    connectedIPhones.joinToString { "${bluetoothDeviceName(it) ?: "iPhone"} (${it.address})" },
             )
         }
         if (iPhones.size == 1) return iPhones.single()
@@ -1931,6 +1975,10 @@ class CarPlayController(
     }
 
     private fun closeWirelessStack(service: CarPlayVpnService? = vpnService) {
+        synchronized(bluetoothMediaHandoffLock) {
+            bluetoothMediaHandoff?.close()
+            bluetoothMediaHandoff = null
+        }
         val diagnostics = wirelessDiagnostics
         wirelessDiagnostics = null
         diagnostics?.close()
@@ -2006,6 +2054,8 @@ class CarPlayController(
         return synchronized(devices) { devices.toSet() }
     }
 
+    // Optional read on vendor ROMs; ordinary apps use the fallback below on permission denial.
+    @android.annotation.SuppressLint("MissingPermission")
     @Suppress("DEPRECATION")
     private fun accessoryBluetoothMac(adapter: BluetoothAdapter): String {
         val address = try {
