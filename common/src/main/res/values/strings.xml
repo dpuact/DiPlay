@@ -489,4 +489,5 @@
     <string name="waiting_for_car_hotspot">Waiting for the car hotspot to finish starting… Connection will continue automatically.</string>
     <string name="car_hotspot_startup_hint">The hotspot is not ready yet. Connecting will wait for the car to finish starting it.</string>
     <string name="car_hotspot_wait_timeout">The car hotspot is not ready. Retrying automatically; check that the hotspot is enabled.</string>
+    <string name="ora_fullscreen_description">ORA fullscreen edition: full screen is enforced, with system bars hidden. Split screen and small windows are disabled. Swipe from an edge to show system controls temporarily.</string>
 </resources>

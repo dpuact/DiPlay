@@ -547,8 +547,8 @@ class CarPlayHostActivity : ComponentActivity() {
             maximumDetectedHeightPixels = height
         }
         rightHandDrive = AirPlayPersistence.loadRightHandDrive(this)
-        hideTopBar = AirPlayPersistence.loadHideTopBar(this)
-        hideBottomBar = AirPlayPersistence.loadHideBottomBar(this)
+        hideTopBar = OraFullscreen.enabled(this) || AirPlayPersistence.loadHideTopBar(this)
+        hideBottomBar = OraFullscreen.enabled(this) || AirPlayPersistence.loadHideBottomBar(this)
         safeAreaDrawOutside = AirPlayPersistence.loadSafeAreaDrawOutside(this)
         locationReportingEnabled = AirPlayPersistence.loadLocationReportingEnabled(this)
         locationPermissionAvailable = hasFineLocationPermission()
@@ -724,8 +724,8 @@ class CarPlayHostActivity : ComponentActivity() {
         ensureClusterPresentation()
         var systemBarsChanged = false
         if (!menuOpen) {
-            val savedHideTopBar = AirPlayPersistence.loadHideTopBar(this)
-            val savedHideBottomBar = AirPlayPersistence.loadHideBottomBar(this)
+            val savedHideTopBar = OraFullscreen.enabled(this) || AirPlayPersistence.loadHideTopBar(this)
+            val savedHideBottomBar = OraFullscreen.enabled(this) || AirPlayPersistence.loadHideBottomBar(this)
             systemBarsChanged = hideTopBar != savedHideTopBar || hideBottomBar != savedHideBottomBar
             hideTopBar = savedHideTopBar
             hideBottomBar = savedHideBottomBar
@@ -2347,6 +2347,10 @@ class CarPlayHostActivity : ComponentActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ),
         )
+        if (OraFullscreen.enabled(this)) {
+            section.addView(menuText(getString(R.string.ora_fullscreen_description), 16f, MENU_SECONDARY))
+            return section
+        }
         addSystemBarControls(
             hideTopBar = hideTopBar,
             hideBottomBar = hideBottomBar,
@@ -4220,6 +4224,10 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     private fun applyFullscreenMode() {
+        if (OraFullscreen.enabled(this)) {
+            OraFullscreen.apply(this)
+            return
+        }
         val multiWindow = isMultiWindowActive()
         val hideTop = hideTopBar && !multiWindow
         val hideBottom = hideBottomBar && !multiWindow

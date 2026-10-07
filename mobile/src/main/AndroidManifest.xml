@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
+        android:name="com.shilapi.xcertplay.OraFullscreenApplication"
         android:allowBackup="false"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -11,12 +12,29 @@
         android:localeConfig="@xml/locales_config"
         android:roundIcon="@drawable/ic_carplay"
         android:supportsRtl="true"
-        android:resizeableActivity="true"
+        android:resizeableActivity="false"
         android:theme="@style/Theme.Xcertplay">
 
-        <meta-data
-            android:name="android.allow_multiple_resumed_activities"
-            android:value="true" />
+
+        <!-- Android 8.1 uses the root activity declaration to choose a full-screen task.
+             Override every library activity explicitly; application=false alone is insufficient. -->
+        <meta-data android:name="android.max_aspect" android:value="4.0" />
+        <activity android:name="com.shilapi.xcertplay.DiPlayActivity"
+            android:resizeableActivity="false" android:maxAspectRatio="4.0"
+            tools:replace="android:resizeableActivity" />
+        <activity android:name="com.shilapi.xcertplay.CarPlayHostActivity"
+            android:resizeableActivity="false" android:maxAspectRatio="4.0"
+            tools:replace="android:resizeableActivity" />
+        <activity android:name="com.shilapi.xcertplay.MainActivity"
+            android:resizeableActivity="false" android:maxAspectRatio="4.0"
+            tools:replace="android:resizeableActivity" />
+        <activity android:name="com.shilapi.xcertplay.ImageCropActivity"
+            android:resizeableActivity="false" android:maxAspectRatio="4.0"
+            tools:replace="android:resizeableActivity" />
+        <activity android:name="com.shilapi.xcertplay.CarPlayVideoActivity"
+            android:resizeableActivity="false" android:maxAspectRatio="4.0"
+            tools:replace="android:resizeableActivity" />
+
 
         <receiver
             android:name="com.shilapi.xcertplay.BootReceiver"

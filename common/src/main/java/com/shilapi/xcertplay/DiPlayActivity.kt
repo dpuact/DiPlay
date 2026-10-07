@@ -101,6 +101,7 @@ class DiPlayActivity : ComponentActivity() {
             isAppearanceLightStatusBars = false
             hide(WindowInsetsCompat.Type.statusBars())
         }
+        OraFullscreen.apply(this)
         setupError = runCatching { DiPlayBootstrap.ensure(this) }.exceptionOrNull()?.let {
             android.util.Log.e("DiPlaySetup", "CarPlay authentication could not be loaded", it)
             getString(R.string.setup_error_auth)
@@ -399,16 +400,20 @@ class DiPlayActivity : ComponentActivity() {
             choice(card, getString(R.string.frame_rate), listOf(getString(R.string.s_30_fps_lighter_load), getString(R.string.s_60_fps_smoother_motion)), if (AirPlayPersistence.loadFps(this) == 60) 1 else 0) { AirPlayPersistence.saveFps(this, if (it == 1) 60 else 30) }
             toggle(card, getString(R.string.efficient_video), getString(R.string.use_hevc_leave_off_for_the_widest_head_unit_compatibility), AirPlayPersistence.loadHevcEnabled(this)) { AirPlayPersistence.saveHevcEnabled(this, it) }
             toggle(card, getString(R.string.right_hand_drive), getString(R.string.place_carplay_s_controls_closer_to_the_driver), AirPlayPersistence.loadRightHandDrive(this)) { AirPlayPersistence.saveRightHandDrive(this, it) }
-            addSystemBarControls(
-                hideTopBar = AirPlayPersistence.loadHideTopBar(this),
-                hideBottomBar = AirPlayPersistence.loadHideBottomBar(this),
-                onHideTopBarChanged = { AirPlayPersistence.saveHideTopBar(this, it) },
-                onHideBottomBarChanged = { AirPlayPersistence.saveHideBottomBar(this, it) },
-            ) { label, checked, onChanged ->
-                toggle(card, getString(label), getString(R.string.hide_the_car_s_system_bars_while_carplay_is_open), checked, save = onChanged)
-            }
-            toggle(card, getString(R.string.adapt_pip_resolution), getString(R.string.adapt_pip_resolution_description), AirPlayPersistence.loadAdaptPipResolution(this)) {
-                AirPlayPersistence.saveAdaptPipResolution(this, it)
+            if (OraFullscreen.enabled(this)) {
+                card.addView(label(getString(R.string.ora_fullscreen_description), 16, MUTED))
+            } else {
+                addSystemBarControls(
+                    hideTopBar = AirPlayPersistence.loadHideTopBar(this),
+                    hideBottomBar = AirPlayPersistence.loadHideBottomBar(this),
+                    onHideTopBarChanged = { AirPlayPersistence.saveHideTopBar(this, it) },
+                    onHideBottomBarChanged = { AirPlayPersistence.saveHideBottomBar(this, it) },
+                ) { label, checked, onChanged ->
+                    toggle(card, getString(label), getString(R.string.hide_the_car_s_system_bars_while_carplay_is_open), checked, save = onChanged)
+                }
+                toggle(card, getString(R.string.adapt_pip_resolution), getString(R.string.adapt_pip_resolution_description), AirPlayPersistence.loadAdaptPipResolution(this)) {
+                    AirPlayPersistence.saveAdaptPipResolution(this, it)
+                }
             }
         }
         section(content, getString(R.string.audio_routing)) { card ->
