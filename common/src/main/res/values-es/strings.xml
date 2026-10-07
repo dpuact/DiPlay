@@ -491,4 +491,5 @@
     <string name="car_hotspot_startup_hint">El punto de acceso aún no está listo. La conexión esperará a que el coche termine de iniciarlo.</string>
     <string name="car_hotspot_wait_timeout">El punto de acceso del coche no está listo. Se reintentará automáticamente; comprueba que esté activado.</string>
     <string name="ora_fullscreen_description">Edición ORA a pantalla completa: se fuerza la pantalla completa y se ocultan las barras del sistema. La pantalla dividida y las ventanas pequeñas están desactivadas. Desliza desde un borde para mostrar temporalmente los controles del sistema.</string>
+    <string name="hotspot_mode_p2p_legacy_desc">Android 8.1/9: activa Wi-Fi y permite el acceso a la ubicación. El coche selecciona el nombre de red, la contraseña y la frecuencia; no se puede forzar 5 GHz. Si no es compatible, usa el punto de acceso del coche.</string>
 </resources>

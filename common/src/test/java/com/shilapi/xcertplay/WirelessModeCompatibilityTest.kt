@@ -15,16 +15,16 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [27, 28])
+@Config(sdk = [27, 28], application = OraFullscreenApplication::class)
 class WirelessModeCompatibilityTest {
-    @Test fun oldAndroidCannotSaveUnsupportedWirelessMode() {
+    @Test fun oldAndroidPreservesWifiDirectSelection() {
         val context = RuntimeEnvironment.getApplication()
         AirPlayPersistence.saveWirelessHotspotMode(context, WirelessHotspotMode.WIFI_P2P)
-        assertEquals(WirelessHotspotMode.MANUAL, AirPlayPersistence.loadWirelessHotspotMode(context))
-        assertEquals("MANUAL", context.getSharedPreferences("xcertplay_airplay", 0).getString("wireless_hotspot_mode", null))
+        assertEquals(WirelessHotspotMode.WIFI_P2P, AirPlayPersistence.loadWirelessHotspotMode(context))
+        assertEquals("WIFI_P2P", context.getSharedPreferences("xcertplay_airplay", 0).getString("wireless_hotspot_mode", null))
     }
 
-    @Test fun connectionControlsDoNotOfferWifiDirectOnOldAndroid() {
+    @Test fun connectionControlsOfferWifiDirectAndExplainSystemSelectedFrequencyOnOldAndroid() {
         val activity = Robolectric.buildActivity(DiPlayActivity::class.java).get()
         val parent = LinearLayout(activity)
         DiPlayActivity::class.java.getDeclaredMethod("wirelessLinkControls", LinearLayout::class.java)
@@ -34,7 +34,8 @@ class WirelessModeCompatibilityTest {
             is ViewGroup -> (0 until view.childCount).flatMap { texts(view.getChildAt(it)) }
             else -> emptyList()
         }
-        assertFalse(texts(parent).any { it.contains(activity.getString(R.string.wifi_direct)) })
+        assertTrue(texts(parent).any { it.contains(activity.getString(R.string.wifi_direct)) })
+        assertTrue(texts(parent).any { it == activity.getString(R.string.hotspot_mode_p2p_legacy_desc) })
         assertTrue(texts(parent).any { it.contains(activity.getString(R.string.built_in_car_hotspot)) })
     }
 

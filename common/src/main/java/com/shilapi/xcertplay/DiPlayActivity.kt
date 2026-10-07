@@ -689,7 +689,8 @@ class DiPlayActivity : ComponentActivity() {
         val titles = listOf(getString(R.string.built_in_car_hotspot), getString(R.string.wifi_direct))
         val descriptions = listOf(
             getString(R.string.hotspot_mode_manual_desc),
-            getString(R.string.hotspot_mode_p2p_desc)
+            getString(if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)
+                R.string.hotspot_mode_p2p_legacy_desc else R.string.hotspot_mode_p2p_desc)
         )
         val wide = resources.configuration.screenWidthDp >= 850
         val choices = if (wide) row().apply { gravity = Gravity.TOP } else column()

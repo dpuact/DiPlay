@@ -7,18 +7,19 @@
 
 - 上游项目：**shihabal3amri/DiPlay**，保留原作者及贡献者署名。
 - 适配分支：**android81-harman**。
-- 当前源码：**v16 好猫强制全屏专版**，`0.2.10-ora-android81-test16-fullscreen`，版本号 `45`。基于已验证的 v12，新增全屏策略尚待实车确认。
+- 当前源码：**v16.1 好猫全屏 + Wi-Fi Direct 专版**，`0.2.10-ora-android81-test16.1-wifi-direct`，版本号 `46`。保留 v16 全屏策略，新增 Android 8.1 / 9 Wi-Fi Direct；新功能尚待实车确认。
 - 安装包名：`com.shihab.diplay.ora81`。
 - 基础版本：上游 `0.2.10`，选择性移植 `0.2.11 / 0.2.12` 的音乐信息及显示改进。
 
 ## 安装包下载
 
-[下载 v16 好猫强制全屏专版、对应源码与验证记录](https://github.com/hiscatwang/DiPlay/releases/tag/v0.2.10-ora81-v16-fullscreen)。
-选择 `Diplay-ORA-Android8.1-x86-v16-fullscreen.apk`，可覆盖安装本分支 v12，无需卸载。
-本版禁止普通分屏及小窗，进入首页、设置和 CarPlay 时请求全屏，并在返回应用后恢复沉浸模式。
-保留 v12 的欧拉图标、音频焦点、Siri 导航音道、方向盘切歌和热点等待。
-本版针对 Android 8.1 / Intel x86、x86_64，不是 ARM 通用版。
-验证及车机固件限制见 [v16 全屏说明](docs/V16_ORA_FULLSCREEN.md)。
+[下载 v16.1 好猫全屏 + Wi-Fi Direct 专版、源码与验证记录](https://github.com/hiscatwang/DiPlay/releases/tag/v0.2.10-ora81-v16.1-wifi-direct)。
+选择 `Diplay-ORA-Android8.1-x86-v16.1-wifi-direct.apk`，可直接覆盖 v16 / v12，无需卸载。
+Android 8.1 / 9 现在可以显示、保存并使用 Wi-Fi Direct，采用旧系统公开接口，读取系统生成的网络名称与密码。
+保留 v16 强制全屏、欧拉图标、音频焦点、Siri 导航音道、方向盘切歌和热点等待。
+本版适用于 Android 8.1 / Intel x86、x86_64。使用步骤及实车验证限制见 [v16.1 说明](docs/V16_1_ORA_WIFI_DIRECT.md)。
+
+历史 [v16 全屏版](https://github.com/hiscatwang/DiPlay/releases/tag/v0.2.10-ora81-v16-fullscreen) 和 [全屏策略说明](docs/V16_ORA_FULLSCREEN.md) 继续保留。
 
 已由车主确认的 v12 保留：
 
@@ -47,7 +48,7 @@ v12 已通过 789 项自动测试和 Android 8.1 模拟器升级检查；**车�
 | v10 | 修复首次连接媒体控制初始化和状态判断；车主已确认方向盘切歌恢复正常 |
 | v11 | 自动启动时等待系统热点及地址就绪，兼容小窗恢复；车主已确认本次冷启动修复通过实车验证 |
 | v12 | Siri 回复可跟随导航音道及临时导航焦点，音乐保持媒体输出；车主于 2026-10-05 确认本次适配实车可用 |
-| v16 | 基于 v12 的强制全屏专版；禁止普通分屏及小窗，原车侧栏是否收起仍需实车验证 |
+| v16 / v16.1 | 保留强制全屏；v16.1 新增 Android 8.1 / 9 Wi-Fi Direct 旧接口适配；侧栏收起及真实无线直连仍需实车验证 |
 | v12 本地验证 | v12 shared 460 项 + common 329 项测试通过；三模块 lint 零错误；Android 8.1 模拟器覆盖升级、设置保留及新增开关跨进程重启检查通过 |
 | 尚未承诺 | 其他年份、芯片和固件；Siri、通话、USB 等功能的完整实车兼容性 |
 
@@ -71,7 +72,7 @@ v12 已通过 789 项自动测试和 Android 8.1 模拟器升级检查；**车�
 应用安装在车机上。对已安装本分支且签名一致的版本，可覆盖升级并保留设置。
 个人重新编译的 APK 签名通常不同，不能直接覆盖既有签名的安装包。
 
-1. Android 8.1 使用车载热点连接模式；Wi-Fi Direct 模式需要较新 Android，不能据上游说明推断本车支持。
+1. v16.1 在 Android 8.1 / 9 提供车载热点和 Wi-Fi Direct。选择 Wi-Fi Direct 时开启车机 Wi-Fi，授予位置权限；部分固件还需要开启系统位置服务。网络名称、密码和频段由系统决定，不能强制 5 GHz。
 2. 要保留已验证的音乐/导航音量分离，请开启 **音频焦点** 与 **导航音频焦点**，并保留原来有效的音频通道设置。
 3. 测试 v11 时，保留画中画/小窗和原有自动连接设置并重启车机，等待系统热点自动开启，应自动继续连接，无需手动重开 DiPlay。
 4. 连接后先不操作手机音乐，检查方向盘上一首/下一首、音乐播放、导航播报及独立音量。
@@ -84,7 +85,7 @@ v12 已通过 789 项自动测试和 Android 8.1 模拟器升级检查；**车�
 完整适配记录、所需 Android SDK / NDK 和构建命令见 [Android 8.1 构建说明](docs/ORA_ANDROID81.md)。
 
 仓库和 CI 提供**不包含本地认证身份与签名密钥的源码构建**。普通 `assembleDebug` 构建结果不等于此前单独交付的完整车机测试 APK。
-Releases 单独提供含上游公开实验性运行资源的 v11、v12 和 v16 APK；对应源码可从同一发布标签下载。
+Releases 单独提供含上游公开实验性运行资源的 v11、v12、v16 和 v16.1 APK；对应源码可从同一发布标签下载。
 源码和 CI 不包含认证私钥，Android 签名私钥始终不公开。
 上游实验性认证机制及限制见 [第三方说明](docs/THIRD_PARTY_NOTICES.md) 和构建文档。
 
